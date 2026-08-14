@@ -14,9 +14,24 @@ type Group = {
 type Ranking = { player_name: string; total_score: number };
 type SubData = { song_id: string; score: number; image_url: string; players: { name: string } };
 
+// スコアをカンマ区切り＆指定桁数の小数でフォーマットする関数
+function formatScore(scoreNumber: number, decimalPlaces?: number, suffix?: string) {
+  const safeDecimals = decimalPlaces || 0;
+  const safeSuffix = suffix || "";
+  
+  // toLocaleStringのオプションで、カンマ区切りと小数桁数の固定を両立させます
+  const formattedNumber = Number(scoreNumber).toLocaleString(undefined, {
+    minimumFractionDigits: safeDecimals,
+    maximumFractionDigits: safeDecimals,
+  });
+  
+  return `${formattedNumber}${safeSuffix}`;
+}
+
 export default function Game() {
   const { gameId } = useParams();
   const [gameName, setGameName] = useState('');
+  const [gameConfig, setGameConfig] = useState({ decimalPlaces: 0, suffix: '' });
   const [groups, setGroups] = useState<Group[]>([]);
   const [rankings, setRankings] = useState<Record<string, Ranking[]>>({});
   const [bestImages, setBestImages] = useState<Record<string, Record<string, string>>>({});
@@ -24,8 +39,11 @@ export default function Game() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: gameData } = await supabase.from('games').select('name').eq('id', gameId).single();
-      if (gameData) setGameName(gameData.name);
+    const { data: gameData } = await supabase.from('games').select('name, decimal_places, suffix').eq('id', gameId).single();
+    if (gameData) {
+      setGameName(gameData.name);
+      setGameConfig({ decimalPlaces: gameData.decimal_places, suffix: gameData.suffix });
+    }
 
       const { data: groupsData } = await supabase
         .from('groups')
@@ -77,7 +95,6 @@ export default function Game() {
         groupsData?.forEach(g => {
           if (ranksByGroup[g.id]) {
             ranksByGroup[g.id].sort((a, b) => {
-              // nullエラー回避：値がない場合は0として計算
               const scoreA = a.total_score || 0;
               const scoreB = b.total_score || 0;
               return g.is_ascending ? scoreA - scoreB : scoreB - scoreA;
@@ -111,7 +128,6 @@ export default function Game() {
             | { type: 'border'; score: number; borderData: { name: string; score: number } };
 
           const listItems: ListItem[] = [
-            // nullエラー回避：値がない場合は0とする
             ...groupRankings.map((r, i) => ({ type: 'rank' as const, score: r.total_score || 0, rankData: r, originalIndex: i })),
             ...groupBorders.map(b => ({ type: 'border' as const, score: b.score, borderData: b }))
           ];
@@ -143,7 +159,7 @@ export default function Game() {
                           <li key={`border-${idx}`} className="flex items-center gap-4 py-3 my-2 opacity-60">
                             <div className="flex-1 border-t-2 border-dashed border-gray-400"></div>
                             <span className="text-gray-600 font-bold text-sm tracking-widest">
-                              {item.borderData.name} ({item.borderData.score.toLocaleString()})
+                              {item.borderData.name} ({formatScore(item.borderData.score, gameConfig.decimalPlaces, gameConfig.suffix)})
                             </span>
                             <div className="flex-1 border-t-2 border-dashed border-gray-400"></div>
                           </li>
@@ -172,8 +188,7 @@ export default function Game() {
                               {rank.player_name}
                             </span>
                             <span className="font-mono text-xl ml-2 font-bold">
-                              {/* nullエラー回避 */}
-                              {(rank.total_score || 0).toLocaleString()}
+                              {formatScore(rank.total_score || 0, gameConfig.decimalPlaces, gameConfig.suffix)}
                             </span>
                           </div>
 
