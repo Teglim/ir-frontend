@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import imageCompression from 'browser-image-compression';
-// 👇 トーストをインポート
 import toast from 'react-hot-toast';
 
 type Song = { id: string; name: string };
@@ -14,10 +13,22 @@ const getFilePathFromUrl = (url: string) => {
   return parts.length > 1 ? parts[1] : null;
 };
 
+// スコアをカンマ区切り＆指定桁数の小数でフォーマットする関数
+function formatScore(scoreNumber: number, decimalPlaces?: number, suffix?: string) {
+  const safeDecimals = decimalPlaces || 0;
+  const safeSuffix = suffix || "";
+  const formattedNumber = Number(scoreNumber).toLocaleString(undefined, {
+    minimumFractionDigits: safeDecimals,
+    maximumFractionDigits: safeDecimals,
+  });
+  return `${formattedNumber}${safeSuffix}`;
+}
+
 export default function Submit() {
   const { gameId } = useParams();
   const navigate = useNavigate();
   
+  const [gameConfig, setGameConfig] = useState({ decimalPlaces: 0, suffix: '' });
   const [groups, setGroups] = useState<Group[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState('');
   const [playerName, setPlayerName] = useState(localStorage.getItem('playerName') || '');
@@ -27,6 +38,8 @@ export default function Submit() {
 
   useEffect(() => {
     const fetchGroups = async () => {
+      const { data: gameData } = await supabase.from('games').select('decimal_places, suffix').eq('id', gameId).single();
+      if (gameData) setGameConfig({ decimalPlaces: gameData.decimal_places, suffix: gameData.suffix });
       const { data } = await supabase
         .from('groups')
         .select(`id, name, songs(id, name)`)
@@ -71,7 +84,6 @@ export default function Submit() {
   const handleDelete = async (submissionId: string) => {
     if (!window.confirm('本当にこのスコアを削除しますか？')) return;
 
-    // 削除中であることを通知（ローディング表示）
     const toastId = toast.loading('削除しています...');
 
     const subToDelete = mySubmissions.find(s => s.id === submissionId);
@@ -101,7 +113,6 @@ export default function Submit() {
     setIsSubmitting(true);
     localStorage.setItem('playerName', playerName);
     
-    // 送信中であることを通知
     const toastId = toast.loading('スコアを送信しています...');
 
     try {
@@ -157,18 +168,16 @@ export default function Submit() {
         await supabase.from('submissions').insert({
           player_id: playerId,
           song_id: songId,
-          score: parseInt(input.score, 10),
+          score: parseFloat(input.score),
           image_url: imageUrl
         });
       }
 
-      // 成功時の通知に変更し、画面遷移
       toast.success('スコアを送信しました！', { id: toastId });
       navigate(`/games/${gameId}`);
       
     } catch (error) {
       console.error(error);
-      // エラー時の通知
       toast.error('エラーが発生しました', { id: toastId });
     } finally {
       setIsSubmitting(false);
@@ -217,13 +226,17 @@ export default function Submit() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-600 mb-1">スコア</label>
-                    <input 
-                      type="number"
-                      className="w-full border p-2 rounded bg-white outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="スコアを入力"
-                      value={inputs[song.id]?.score || ''}
-                      onChange={e => setInputs(prev => ({ ...prev, [song.id]: { ...prev[song.id], score: e.target.value } }))}
-                    />
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="number"
+                        step={gameConfig.decimalPlaces > 0 ? String(1 / Math.pow(10, gameConfig.decimalPlaces)) : "1"}
+                        className="w-full border p-2 rounded bg-white outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="スコアを入力"
+                        value={inputs[song.id]?.score || ''}
+                        onChange={e => setInputs(prev => ({ ...prev, [song.id]: { ...prev[song.id], score: e.target.value } }))}
+                      />
+                      {gameConfig.suffix && <span className="font-bold text-gray-600">{gameConfig.suffix}</span>}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-600 mb-1">リザルト画像 (任意)</label>
@@ -264,7 +277,9 @@ export default function Submit() {
                   </div>
                   <div className="flex items-center gap-4">
                     {sub.image_url && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">画像あり</span>}
-                    <span className="font-mono text-lg font-bold text-gray-700">{sub.score.toLocaleString()}</span>
+                    <span className="font-mono text-lg font-bold text-gray-700">
+                      {formatScore(sub.score, gameConfig.decimalPlaces, gameConfig.suffix)}
+                    </span>
                     <button 
                       onClick={() => handleDelete(sub.id)} 
                       className="text-sm text-red-500 hover:bg-red-50 px-3 py-1.5 rounded transition-colors"
