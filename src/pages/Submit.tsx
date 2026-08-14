@@ -147,7 +147,7 @@ export default function Submit() {
           }
 
           const options = {
-            maxSizeMB: 0.3,
+            maxSizeMB: 0.5,
             maxWidthOrHeight: 1280,
             useWebWorker: true,
           };
@@ -239,7 +239,7 @@ export default function Submit() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-600 mb-1">リザルト画像 (任意)</label>
+                    <label className="block text-xs font-bold text-gray-600 mb-1">リザルト画像</label>
                     <input 
                       type="file" accept="image/*"
                       className="w-full text-sm p-1.5"
