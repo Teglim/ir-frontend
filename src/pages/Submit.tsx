@@ -176,7 +176,7 @@ export default function Submit() {
       // ▼ ここからDiscord Webhook通知の処理 (フル機能・修正版) ▼
       try {
         const WEBHOOK_URL = import.meta.env.VITE_DISCORD_WEBHOOK_URL;
-        console.log('Discord Webhook URL exists:', !!WEBHOOK_URL);
+        // console.log('Discord Webhook URL exists:', !!WEBHOOK_URL);
         
         const currentGroup = groups.find(g => g.id === selectedGroupId);
         
