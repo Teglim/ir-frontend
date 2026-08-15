@@ -13,7 +13,6 @@ const getFilePathFromUrl = (url: string) => {
   return parts.length > 1 ? parts[1] : null;
 };
 
-// スコアをカンマ区切り＆指定桁数の小数でフォーマットする関数
 function formatScore(scoreNumber: number, decimalPlaces?: number, suffix?: string) {
   const safeDecimals = decimalPlaces || 0;
   const safeSuffix = suffix || "";
@@ -147,7 +146,7 @@ export default function Submit() {
           }
 
           const options = {
-            maxSizeMB: 0.5,
+            maxSizeMB: 0.3,
             maxWidthOrHeight: 1280,
             useWebWorker: true,
           };
@@ -188,16 +187,16 @@ export default function Submit() {
   const allSongs = groups.flatMap(g => g.songs);
 
   return (
-    <div className="max-w-2xl mx-auto p-4 pb-24">
-      <Link to={`/games/${gameId}`} className="text-blue-600 hover:underline mb-6 inline-block">← ランキングに戻る</Link>
-      <h1 className="text-2xl font-bold mb-6">スコア提出</h1>
+    <div className="max-w-2xl mx-auto p-4 pb-24 text-gray-100">
+      <Link to={`/games/${gameId}`} className="text-blue-400 hover:text-blue-300 hover:underline mb-6 inline-block">← ランキングに戻る</Link>
+      <h1 className="text-2xl font-bold mb-6 tracking-wide">スコア提出</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow border border-gray-200">
+      <form onSubmit={handleSubmit} className="space-y-6 bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-700">
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1">プレイヤー名</label>
+          <label className="block text-sm font-bold text-gray-300 mb-1">プレイヤー名</label>
           <input 
             type="text" required
-            className="w-full border p-2 rounded bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full border border-gray-600 p-2 rounded bg-gray-900 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow"
             value={playerName}
             onChange={e => setPlayerName(e.target.value)}
             placeholder="ランキングに表示される名前"
@@ -205,9 +204,9 @@ export default function Submit() {
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1">対象グループ</label>
+          <label className="block text-sm font-bold text-gray-300 mb-1">対象グループ</label>
           <select 
-            className="w-full border p-2 rounded bg-gray-50 outline-none"
+            className="w-full border border-gray-600 p-2 rounded bg-gray-900 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow"
             value={selectedGroupId}
             onChange={e => setSelectedGroupId(e.target.value)}
           >
@@ -218,31 +217,31 @@ export default function Submit() {
         </div>
 
         {selectedGroup && (
-          <div className="space-y-4 mt-6 border-t pt-6">
-            <p className="text-sm font-bold text-blue-600 mb-4">※ 更新したい曲だけ入力してください（空欄は無視されます）</p>
+          <div className="space-y-4 mt-6 border-t border-gray-700 pt-6">
+            <p className="text-sm font-bold text-blue-400 mb-4">※ 更新したい曲だけ入力してください（空欄は無視されます）</p>
             {selectedGroup.songs.map(song => (
-              <div key={song.id} className="p-4 border rounded bg-gray-50">
-                <h3 className="font-bold text-lg mb-3">{song.name}</h3>
+              <div key={song.id} className="p-4 border border-gray-700 rounded bg-gray-900/50">
+                <h3 className="font-bold text-lg mb-3 text-gray-200">{song.name}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-600 mb-1">スコア</label>
+                    <label className="block text-xs font-bold text-gray-400 mb-1">スコア</label>
                     <div className="flex items-center gap-2">
                       <input 
                         type="number"
                         step={gameConfig.decimalPlaces > 0 ? String(1 / Math.pow(10, gameConfig.decimalPlaces)) : "1"}
-                        className="w-full border p-2 rounded bg-white outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full border border-gray-600 p-2 rounded bg-gray-900 text-white outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
                         placeholder="スコアを入力"
                         value={inputs[song.id]?.score || ''}
                         onChange={e => setInputs(prev => ({ ...prev, [song.id]: { ...prev[song.id], score: e.target.value } }))}
                       />
-                      {gameConfig.suffix && <span className="font-bold text-gray-600">{gameConfig.suffix}</span>}
+                      {gameConfig.suffix && <span className="font-bold text-gray-400">{gameConfig.suffix}</span>}
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-600 mb-1">リザルト画像</label>
+                    <label className="block text-xs font-bold text-gray-400 mb-1">リザルト画像 (任意)</label>
                     <input 
                       type="file" accept="image/*"
-                      className="w-full text-sm p-1.5"
+                      className="w-full text-sm p-1.5 text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-700 file:text-blue-400 hover:file:bg-gray-600 transition-colors"
                       onChange={e => setInputs(prev => ({ ...prev, [song.id]: { ...prev[song.id], file: e.target.files?.[0] || null } }))}
                     />
                   </div>
@@ -254,15 +253,15 @@ export default function Submit() {
 
         <button 
           type="submit" disabled={isSubmitting}
-          className="w-full bg-blue-600 text-white font-bold py-4 rounded-lg shadow hover:bg-blue-700 transition-colors disabled:opacity-50 mt-8"
+          className="w-full bg-blue-600 text-white font-bold py-4 rounded-lg shadow-lg hover:bg-blue-500 transition-colors disabled:opacity-50 mt-8"
         >
           {isSubmitting ? '送信中...' : '提出する'}
         </button>
       </form>
 
       {mySubmissions.length > 0 && (
-        <div className="mt-12 bg-white p-6 rounded-lg shadow border border-gray-200">
-          <h2 className="text-xl font-bold mb-4">自分の提出履歴（最新10件）</h2>
+        <div className="mt-12 bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-700">
+          <h2 className="text-xl font-bold mb-4 text-white">自分の提出履歴（最新10件）</h2>
           <ul className="space-y-3">
             {mySubmissions.map(sub => {
               const songName = allSongs.find(s => s.id === sub.song_id)?.name || '不明な曲';
@@ -270,19 +269,19 @@ export default function Submit() {
               const dateStr = `${dateObj.getMonth() + 1}/${dateObj.getDate()} ${dateObj.getHours()}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
               
               return (
-                <li key={sub.id} className="flex justify-between items-center border-b border-gray-100 pb-3">
+                <li key={sub.id} className="flex justify-between items-center border-b border-gray-700/50 pb-3">
                   <div>
-                    <p className="font-bold text-gray-800">{songName}</p>
+                    <p className="font-bold text-gray-200">{songName}</p>
                     <p className="text-xs text-gray-500">{dateStr}</p>
                   </div>
                   <div className="flex items-center gap-4">
-                    {sub.image_url && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">画像あり</span>}
-                    <span className="font-mono text-lg font-bold text-gray-700">
+                    {sub.image_url && <span className="text-xs bg-blue-900/40 text-blue-400 border border-blue-800/50 px-2 py-0.5 rounded">画像あり</span>}
+                    <span className="font-mono text-lg font-bold text-gray-300">
                       {formatScore(sub.score, gameConfig.decimalPlaces, gameConfig.suffix)}
                     </span>
                     <button 
                       onClick={() => handleDelete(sub.id)} 
-                      className="text-sm text-red-500 hover:bg-red-50 px-3 py-1.5 rounded transition-colors"
+                      className="text-sm text-red-400 hover:bg-red-900/30 px-3 py-1.5 rounded transition-colors"
                     >
                       削除
                     </button>

@@ -14,17 +14,13 @@ type Group = {
 type Ranking = { player_name: string; total_score: number };
 type SubData = { song_id: string; score: number; image_url: string; players: { name: string } };
 
-// スコアをカンマ区切り＆指定桁数の小数でフォーマットする関数
 function formatScore(scoreNumber: number, decimalPlaces?: number, suffix?: string) {
   const safeDecimals = decimalPlaces || 0;
   const safeSuffix = suffix || "";
-  
-  // toLocaleStringのオプションで、カンマ区切りと小数桁数の固定を両立させます
   const formattedNumber = Number(scoreNumber).toLocaleString(undefined, {
     minimumFractionDigits: safeDecimals,
     maximumFractionDigits: safeDecimals,
   });
-  
   return `${formattedNumber}${safeSuffix}`;
 }
 
@@ -109,13 +105,13 @@ export default function Game() {
     if (gameId) fetchData();
   }, [gameId]);
 
-  if (loading) return <div className="text-center p-8">読み込み中...</div>;
+  if (loading) return <div className="text-center p-8 text-gray-400">読み込み中...</div>;
 
   return (
     <div className="max-w-4xl mx-auto p-4 pb-24">
       <div className="mb-6">
-        <Link to="/" className="text-blue-600 hover:underline mb-2 inline-block">← トップへ戻る</Link>
-        <h1 className="text-3xl font-bold">{gameName} ランキング</h1>
+        <Link to="/" className="text-blue-400 hover:text-blue-300 hover:underline mb-2 inline-block">← トップへ戻る</Link>
+        <h1 className="text-3xl font-bold text-white tracking-wide">{gameName} ランキング</h1>
       </div>
 
       <div className="space-y-12">
@@ -142,10 +138,10 @@ export default function Game() {
           });
 
           return (
-            <div key={group.id} className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="bg-gray-800 text-white px-4 py-3">
-                <h2 className="text-xl font-bold">{group.name}</h2>
-                <p className="text-sm text-gray-300">
+            <div key={group.id} className="bg-gray-800 rounded-lg shadow-xl overflow-hidden border border-gray-700">
+              <div className="bg-black/40 text-white px-4 py-3 border-b border-gray-700">
+                <h2 className="text-xl font-bold tracking-wider">{group.name}</h2>
+                <p className="text-sm text-gray-400 mt-1">
                   対象曲: {group.songs.map(s => s.name).join(' / ')}
                 </p>
               </div>
@@ -156,12 +152,12 @@ export default function Game() {
                     {listItems.map((item, idx) => {
                       if (item.type === 'border') {
                         return (
-                          <li key={`border-${idx}`} className="flex items-center gap-4 py-3 my-2 opacity-60">
-                            <div className="flex-1 border-t-2 border-dashed border-gray-400"></div>
-                            <span className="text-gray-600 font-bold text-sm tracking-widest">
+                          <li key={`border-${idx}`} className="flex items-center gap-4 py-3 my-2 opacity-80">
+                            <div className="flex-1 border-t-2 border-dashed border-gray-600"></div>
+                            <span className="text-gray-400 font-bold text-sm tracking-widest">
                               {item.borderData.name} ({formatScore(item.borderData.score, gameConfig.decimalPlaces, gameConfig.suffix)})
                             </span>
-                            <div className="flex-1 border-t-2 border-dashed border-gray-400"></div>
+                            <div className="flex-1 border-t-2 border-dashed border-gray-600"></div>
                           </li>
                         );
                       }
@@ -176,18 +172,18 @@ export default function Game() {
                       return (
                         <li 
                           key={`rank-${originalIdx}`} 
-                          className={`flex flex-col md:flex-row md:items-center justify-between border-b pb-3 pt-2 gap-4 ${
-                            isTop3 ? 'bg-amber-50/40 -mx-4 px-4 rounded-lg' : ''
+                          className={`flex flex-col md:flex-row md:items-center justify-between border-b border-gray-700/50 pb-3 pt-2 gap-4 ${
+                            isTop3 ? 'bg-amber-900/20 -mx-4 px-4 rounded-lg border-none' : ''
                           }`}
                         >
                           <div className="flex items-center gap-4">
-                            <span className={`font-bold ${isTop3 ? 'text-2xl text-amber-600' : 'text-lg text-gray-600'}`}>
+                            <span className={`font-bold ${isTop3 ? 'text-2xl text-amber-400 drop-shadow-md' : 'text-lg text-gray-500'}`}>
                               {originalIdx + 1}位
                             </span>
-                            <span className={`font-bold ${isTop3 ? 'text-xl' : 'text-lg'}`}>
+                            <span className={`font-bold ${isTop3 ? 'text-xl text-white' : 'text-lg text-gray-300'}`}>
                               {rank.player_name}
                             </span>
-                            <span className="font-mono text-xl ml-2 font-bold">
+                            <span className={`font-mono text-xl ml-2 font-bold ${isTop3 ? 'text-amber-100' : 'text-gray-400'}`}>
                               {formatScore(rank.total_score || 0, gameConfig.decimalPlaces, gameConfig.suffix)}
                             </span>
                           </div>
@@ -199,7 +195,7 @@ export default function Game() {
                                   <img 
                                     src={url} 
                                     alt="リザルト" 
-                                    className="h-16 md:h-20 w-auto object-cover rounded border border-gray-300 shadow-sm hover:opacity-80 transition-opacity" 
+                                    className="h-16 md:h-20 w-auto object-cover rounded border border-gray-600 shadow-md hover:opacity-80 transition-opacity" 
                                   />
                                 </a>
                               ))}
@@ -220,7 +216,7 @@ export default function Game() {
 
       <Link
         to={`/games/${gameId}/submit`}
-        className="fixed bottom-8 right-8 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-transform hover:scale-105"
+        className="fixed bottom-8 right-8 bg-blue-600 text-white p-4 rounded-full shadow-lg shadow-blue-900/50 hover:bg-blue-500 transition-transform hover:scale-105"
       >
         <Plus size={32} />
       </Link>
