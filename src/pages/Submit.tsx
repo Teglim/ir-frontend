@@ -5,7 +5,7 @@ import imageCompression from 'browser-image-compression';
 import toast from 'react-hot-toast';
 
 type Song = { id: string; name: string };
-type Group = { id: string; name: string; songs: Song[] };
+type Group = { id: string; name: string; is_ascending: boolean; borders: { name: string; score: number }[]; songs: Song[] };
 type MySub = { id: string; score: number; created_at: string; song_id: string; image_url: string | null };
 
 const getFilePathFromUrl = (url: string) => {
@@ -27,7 +27,7 @@ export default function Submit() {
   const { gameId } = useParams();
   const navigate = useNavigate();
   
-  const [gameConfig, setGameConfig] = useState({ decimalPlaces: 0, suffix: '' });
+  const [gameConfig, setGameConfig] = useState({ name: '', decimalPlaces: 0, suffix: '' });
   const [groups, setGroups] = useState<Group[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState('');
   const [playerName, setPlayerName] = useState(localStorage.getItem('playerName') || '');
@@ -37,11 +37,11 @@ export default function Submit() {
 
   useEffect(() => {
     const fetchGroups = async () => {
-      const { data: gameData } = await supabase.from('games').select('decimal_places, suffix').eq('id', gameId).single();
-      if (gameData) setGameConfig({ decimalPlaces: gameData.decimal_places, suffix: gameData.suffix });
+      const { data: gameData } = await supabase.from('games').select('name, decimal_places, suffix').eq('id', gameId).single();
+      if (gameData) setGameConfig({ name: gameData.name, decimalPlaces: gameData.decimal_places, suffix: gameData.suffix });
       const { data } = await supabase
         .from('groups')
-        .select(`id, name, songs(id, name)`)
+        .select(`id, name, is_ascending, borders, songs(id, name)`)
         .eq('game_id', gameId)
         .order('sort_order');
       
@@ -171,6 +171,77 @@ export default function Submit() {
           image_url: imageUrl
         });
       }
+
+      // --------------------------------------------------------
+      // ▼ ここからDiscord Webhook通知の処理 (フル機能・修正版) ▼
+      try {
+        const WEBHOOK_URL = import.meta.env.VITE_DISCORD_WEBHOOK_URL;
+        
+        const currentGroup = groups.find(g => g.id === selectedGroupId);
+        
+        if (WEBHOOK_URL && currentGroup) {
+          const { data: rankData } = await supabase.from('group_rankings').select('*').eq('group_id', selectedGroupId);
+          
+          let rankText = "集計外";
+          let borderText = "";
+          let totalScore = 0;
+
+          if (rankData) {
+            rankData.sort((a, b) => currentGroup.is_ascending ? a.total_score - b.total_score : b.total_score - a.total_score);
+            const myRankIndex = rankData.findIndex(r => r.player_name === playerName);
+            
+            if (myRankIndex !== -1) {
+              rankText = `${myRankIndex + 1}位`;
+              totalScore = rankData[myRankIndex].total_score;
+
+              // ボーダーラインを超えたか判定（空データや不正なデータは除外）
+              const borders = currentGroup.borders || [];
+              const validBorders = borders.filter(b => b && typeof b.score === 'number');
+              const clearedBorders = validBorders.filter(b => currentGroup.is_ascending ? totalScore <= b.score : totalScore >= b.score);
+              
+              if (clearedBorders.length > 0) {
+                // 名前(name)が存在するかどうかで表示を分ける
+                const borderName = clearedBorders[0].name;
+                if (borderName) {
+                  borderText = `\n🎉 **ボーダー「${borderName}」達成！**`;
+                } else {
+                  borderText = `\n🎉 **ボーダー達成！**`;
+                }
+              }
+            }
+          }
+
+          const formData = new FormData();
+          // 対象に 機種名（gameConfig.name） を追加
+          const payload = {
+            content: `**【新規スコア提出】**\n✅ **${playerName}** さんがスコアを更新しました！\n🎮 対象: **${gameConfig.name} / ${currentGroup.name}**\n🏆 現在の順位: **${rankText}** (合計: ${formatScore(totalScore, gameConfig.decimalPlaces, gameConfig.suffix)})${borderText}`
+          };
+          
+          formData.append('payload_json', JSON.stringify(payload));
+
+          let fileIndex = 0;
+          for (const songId in inputs) {
+            if (inputs[songId].file) {
+              formData.append(`files[${fileIndex}]`, inputs[songId].file, inputs[songId].file.name);
+              fileIndex++;
+            }
+          }
+
+          const response = await fetch(WEBHOOK_URL, { 
+            method: 'POST', 
+            body: formData 
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Discord通知エラー:", errorText);
+          }
+        }
+      } catch (err) {
+        console.error("Discord通知の処理でエラーが発生しました", err);
+      }
+      // ▲ ここまでDiscord Webhook通知の処理 (フル機能・修正版) ▲
+      // --------------------------------------------------------
 
       toast.success('スコアを送信しました！', { id: toastId });
       navigate(`/games/${gameId}`);
