@@ -130,6 +130,15 @@ export default function Submit() {
         const input = inputs[songId];
         if (!input.score) continue;
 
+        // 入力された文字から、カンマ(,)、半角スペース、全角スペースを取り除く
+        const sanitizedStr = input.score.replace(/[,\s ]/g, '');
+        const parsedScore = parseFloat(sanitizedStr);
+        
+        if (isNaN(parsedScore)) {
+          toast.error(`スコアの形式が正しくありません: ${input.score}`);
+          throw new Error("Invalid score format");
+        }
+
         let imageUrl = null;
         if (input.file) {
           const { data: oldSubs } = await supabase
@@ -167,16 +176,14 @@ export default function Submit() {
         await supabase.from('submissions').insert({
           player_id: playerId,
           song_id: songId,
-          score: parseFloat(input.score),
+          score: parsedScore,
           image_url: imageUrl
         });
       }
 
-      // --------------------------------------------------------
-      // ▼ ここからDiscord Webhook通知の処理 (フル機能・修正版) ▼
+      // Discord Webhook通知の処理
       try {
         const WEBHOOK_URL = import.meta.env.VITE_DISCORD_WEBHOOK_URL;
-        console.log('Discord Webhook URL exists:', !!WEBHOOK_URL);
         
         const currentGroup = groups.find(g => g.id === selectedGroupId);
         
@@ -241,8 +248,6 @@ export default function Submit() {
       } catch (err) {
         console.error("Discord通知の処理でエラーが発生しました", err);
       }
-      // ▲ ここまでDiscord Webhook通知の処理 (フル機能・修正版) ▲
-      // --------------------------------------------------------
 
       toast.success('スコアを送信しました！', { id: toastId });
       navigate(`/games/${gameId}`);
@@ -299,10 +304,10 @@ export default function Submit() {
                     <label className="block text-xs font-bold text-gray-400 mb-1">スコア</label>
                     <div className="flex items-center gap-2">
                       <input 
-                        type="number"
-                        step={gameConfig.decimalPlaces > 0 ? String(1 / Math.pow(10, gameConfig.decimalPlaces)) : "1"}
+                        type="text"
+                        inputMode="decimal"
                         className="w-full border border-gray-600 p-2 rounded bg-gray-900 text-white outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
-                        placeholder="スコアを入力"
+                        placeholder="スコア"
                         value={inputs[song.id]?.score || ''}
                         onChange={e => setInputs(prev => ({ ...prev, [song.id]: { ...prev[song.id], score: e.target.value } }))}
                       />
@@ -310,7 +315,7 @@ export default function Submit() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-400 mb-1">リザルト画像 (任意)</label>
+                    <label className="block text-xs font-bold text-gray-400 mb-1">リザルト画像</label>
                     <input 
                       type="file" accept="image/*"
                       className="w-full text-sm p-1.5 text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-700 file:text-blue-400 hover:file:bg-gray-600 transition-colors"
