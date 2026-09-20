@@ -188,7 +188,7 @@ export default function Game() {
                             </span>
                           </div>
 
-                          {isTop3 && playerImages.length > 0 && (
+                          {playerImages.length > 0 && (
                             <div className="flex gap-2 overflow-x-auto">
                               {playerImages.map((url, i) => (
                                 <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="shrink-0">
